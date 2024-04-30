@@ -23,9 +23,35 @@ const NearestHospitals = ({ route, navigation }) => {
   const [hospitals, setHospitals] = useState([]);
   const [loading, setLoading] = useState(true); // Combined loading state
   const [currentLocation, setCurrentLocation] = useState(null);
+  const [prediction, setPrediction] = useState(null);
   const { audiofile, symptomScore } = route.params;
 
   useEffect(() => {
+    const blobUrl = audiofile;
+    fetch(blobUrl)
+    .then(response => response.blob())
+    .then(audioBlob => {
+      const dummyBlob = audioBlob;
+      dummyBlob.type = "audio/wav";
+      let data = new FormData();
+      data.append('audiofile', dummyBlob, "recording.wav");
+
+      const config = {
+          headers: {'content-type': 'multipart/form-data'}
+      }
+      axios.post('http://localhost:5000/extract-features', data, config)
+      .then(response => {
+        // console.log('response', response.data);
+        let prediction = response.data.prediction
+        // console.log('prediction', prediction);
+        setPrediction(prediction);
+      })
+      .catch(error => {
+        console.log('error', error);
+      })
+      
+      });
+
     const loadHospitals = async () => {
       setLoading(true); // Start loading
       try {
@@ -130,7 +156,7 @@ const NearestHospitals = ({ route, navigation }) => {
         </View>
       ) : (
         <View style={{ flex: 1 }}>
-          {symptomScore > 5 && (
+          {symptomScore > 3 && prediction ==1 &&(
             <View
               style={{
                 zIndex: 1,
@@ -152,7 +178,7 @@ const NearestHospitals = ({ route, navigation }) => {
               </Text>
             </View>
           )}
-          {symptomScore > 2 && symptomScore <= 5 && (
+          {symptomScore > 3 || prediction == 1 && (
             <View
               style={{
                 zIndex: 1,
@@ -174,7 +200,7 @@ const NearestHospitals = ({ route, navigation }) => {
               </Text>
             </View>
           )}
-          {symptomScore <= 2 && (
+          {symptomScore <= 3 && prediction ==0 &&(
             <View style={{ flex: 1, alignItems: "center" }}>
               <View
                 style={{
@@ -208,7 +234,7 @@ const NearestHospitals = ({ route, navigation }) => {
               />
             </View>
           )}
-          {symptomScore > 2 && (
+          {symptomScore > 3 && (
             <View style={{ flex: 1 }}>
               <View style={{ borderBottomWidth: 1, borderColor: "grey" }}>
                 <Text style={styles.headerText}>Nearest Hospitals</Text>
